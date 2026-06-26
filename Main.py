@@ -1,116 +1,125 @@
-import psutil, time
-while True:
-    print("\n" * 3)
-    print("--- System Monitoring ---")
-    print("1. Hardware (CPU, RAM, DISK)")
-    print("2. Network-Traffic")
-    print("3. Processes/Services")
-    choice = input("Option: ")
+import tkinter as tk
+import psutil
+first_network = psutil.net_io_counters()
+network_window = None
+cpu_window = None
+ram_window = None
+storage_window = None
+
+def show_cpu():
+    global cpu_window
+    if cpu_window is None :
+        cpu_window = tk.Toplevel(root)
+        cpu_window.title("CPU")
+        cpu_window.geometry("300x70")
+
+    label_cpu = tk.Label(cpu_window,text= f"CPU Usage: {psutil.cpu_percent(interval=1)} %")
+    label_cpu.place(x=100, y=25)
+    cpu_window.after(5000, show_cpu)
+
+def show_ram():
+    global ram_window
+    if ram_window is None:
+        ram_window = tk.Toplevel(root)
+        ram_window.title("RAM")
+        ram_window.geometry("300x100")
+
+    mem = psutil.virtual_memory()
+    total_memory = (mem.total / 1024**3)
+    total_ram = tk.Label(ram_window,text= f"Total memory: {total_memory:.2f} GB")
+    total_ram.place(x=50, y=30)
+
+    available_mem = (mem.available / 1024**3)
+    label_ram = tk.Label(ram_window,text= f"Total available memory: {available_mem:.2f} GB")
+    label_ram.place(x=50, y=50)
+
+    label_mem_percentage = tk.Label(ram_window,text = f"Using: {mem.percent:.2f} of RAM")
+    label_mem_percentage.place (x=50, y=70)
+
+    ram_window.after(5000, show_ram)
+
+def show_network():
+    global network_window
+    if network_window is None:
+        network_window = tk.Toplevel(root)
+        network_window.title("Network")
+        network_window.geometry("300x200")
     
-    #CPU Usage
-    if choice == "1":
-        while True:
-            CPU_Perc = psutil.cpu_percent(interval=1)
-            print (f"CPU Usage: {CPU_Perc} %")
-            if CPU_Perc > 85:
-                print("WARNING: CPU Usage too high!")
-            #RAM- TotalRAM/AvailableRAM
-            mem = psutil.virtual_memory()
-            total_memory = (mem.total / 1024**3)
-            print (f"Total memory: {total_memory:.2f} GB")
-        
+    global first_network
+    second_network= psutil.net_io_counters(pernic= False, nowrap= True)
 
-            #Available RAM
-            available_memory = (mem.available / 1024**3)
-            print(f"Total available memory: {available_memory:.2f} GB")
-            if mem.percent > 80 :
-                print("WARNING: RAM usage too high!")
+    total_bytes_send = (second_network.bytes_sent / 1024**2)
+    total_bytes_recv = (second_network.bytes_recv  / 1024**2)
+    interval_bytes_send = ((second_network.bytes_sent - first_network.bytes_sent) / 1024**2)
+    interval_bytes_recv = ((second_network.bytes_recv - first_network.bytes_recv) / 1024**2)
 
-            #Disks
-            disk = psutil.disk_usage('/')
-            io_counters = psutil.disk_io_counters(perdisk=True, nowrap=True)
+    label_total_send = tk.Label(network_window,text= f"Number of total bytes sent : {total_bytes_send:.2f} Mb")
+    label_total_send.place(x=50, y=30)
+    label_total_received = tk.Label(network_window,text= f"Number of total bytes received : {total_bytes_recv:.2f} Mb")
+    label_total_received.place(x=50, y= 50)
 
-            #Disk_storage
-            total_storage = (disk.total / 1024**3)
-            used_storage = (disk.used / 1024**3)
-            storage_used_percentage = (disk.percent)
+    label_interval_send = tk.Label(network_window,text= f"Number of bytes sent : {interval_bytes_send:.2f} Mb")
+    label_interval_send.place(x=50, y=110)
+    label_interval_received = tk.Label(network_window,text= f"Number of bytes received : {interval_bytes_recv:.2f} Mb")
+    label_interval_received.place(x=50, y=130)
 
-            print(f"total existing storage: {total_storage:.0f} GB")
-            print(f"used storage: {used_storage:.0f} GB")
-            print(f"{storage_used_percentage} % of storage is used")
-            if storage_used_percentage > 90:
-                print("WARNING: Only 10% Of Storage left!")
-            print()
-
-            #Disk_counters and Disk_times
-            for disk_name, counters in io_counters.items():
-                disk_readtime = counters.read_time
-                disk_writetime = counters.write_time
-
-                print (f"[{disk_name}]")
-                print (f"time it took to read : {disk_readtime} ms")
-                print (f"time it took to write : {disk_writetime} ms")
-            print()
-            choice_back = input("Press Enter to refresh or type 'quit' to go back ")
-            if choice_back == "quit":
-                break
+    network_window.after(5000, show_network)
+    first_network = second_network
     
+def show_storage():
+    global storage_window
+    if storage_window is None:
+        storage_window = tk.Toplevel(root)
+        storage_window.title("Storage Statistics")
+        storage_window.geometry("300x200")
 
-    #Network monitoring - Bytes/Packets/Errors/Dropping
-    elif choice == "2":
-        first_network= psutil.net_io_counters()
-    
-        while True:
-            second_network= psutil.net_io_counters(pernic= False, nowrap= True)
+    disk = psutil.disk_usage('/')
+    io_counters = psutil.disk_io_counters(perdisk= True , nowrap= True)
+    total_storage = (disk.total / 1024**3)
+    used_storage = (disk.used / 1024**3)
+    storage_used_percentage = (disk.percent)
 
-            packets_sent = second_network.packets_sent
-            packets_recv = second_network.packets_recv
-
-            errin = second_network.errin
-            errout = second_network.errout
-
-            dropin = second_network.dropin
-            dropout = second_network.dropout
-
-            total_bytes_send = (second_network.bytes_sent / 1024**2)
-            total_bytes_recv = (second_network.bytes_recv  / 1024**2)
-            interval_bytes_send = ((second_network.bytes_sent - first_network.bytes_sent) / 1024**2)
-            interval_bytes_recv = ((second_network.bytes_recv - first_network.bytes_recv) / 1024**2)
+    label_total_storage = tk.Label(storage_window,text= f"total existing storage: {total_storage:.0f} GB")
+    label_total_storage.place (x=50, y=30)
+    label_used_storage = tk.Label(storage_window,text= f"used storage: {used_storage:.0f} GB")
+    label_used_storage.place (x=50, y= 50)
+    label_percentage_storage_used = tk.Label(storage_window,text= f"{storage_used_percentage} % of storage is used")
+    label_percentage_storage_used.place (x=50, y= 70)
 
 
-            first_network = second_network
-            time.sleep(3)
-            print(f"Number of total bytes sent : {total_bytes_send:.2f} Mb")
-            print(f"Number of total bytes received : {total_bytes_recv:.2f} Mb")
-            print()
-            print(f"Number of bytes sent : {interval_bytes_send:.2f} Mb")
-            print(f"Number of bytes received : {interval_bytes_recv:.2f} Mb")
-            print()
-            print(f"Number of packets sent : {packets_sent}")
-            print(f"Number of packets received : {packets_recv}")
-            print()
-            print(f"{errin} errors occured while receiving")
-            print(f"{errout} errors occured while sending")
-            print()
-            print(f"total of {dropin} incoming packets were dropped")
-            print(f"total of {dropout} outgoing packets were dropped")
-            print()
-            
-            choice_back = input("Press Enter to refresh or type 'quit' to go back ")
-            if choice_back == "quit":
-                break
-    
+# Main Window
+root = tk.Tk()
 
+# Window title
+root.title("System-Monitoring")
 
+# Main Window Size
 
-    elif choice == "3": 
-        psutil.cpu_percent()
-        while True:
-            for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent']):
-                #print (proc.info)
-                print(f"PID: {proc.info['pid']} Name: {proc.info['name']}      CPU: {proc.info['cpu_percent']:.2f}%  RAM:  {proc.info['memory_percent']:.2f} %")
-            
-            choice_back = input("Press Enter to refresh or type 'quit' to go back ")
-            if choice_back == "quit":
-                break
-    
+root.geometry("300x200")
+# Labeling Main Menu
+
+label = tk.Label(root,text = "System Monitoring")
+label.place(x=90, y=10)
+
+# Networking Button
+
+button_network = tk.Button(root, text= "Network", command= show_network)
+button_network.place(x= 90, y=40)
+
+# CPU Button
+
+button_cpu = tk.Button(root, text= "CPU", command= show_cpu)
+button_cpu.place(x= 90, y=70)
+
+# RAM Button
+
+button_ram = tk.Button(root, text= "RAM", command = show_ram)
+button_ram.place(x= 90, y=100)
+
+# Storage Button
+
+button_storage = tk.Button(root, text= "Storage", command = show_storage)
+button_storage.place(x= 90, y=130)
+
+# Start
+root.mainloop()
